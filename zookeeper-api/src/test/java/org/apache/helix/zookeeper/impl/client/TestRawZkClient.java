@@ -129,7 +129,7 @@ public class TestRawZkClient extends ZkTestBase {
     AssertJUnit.assertFalse(zkClient.exists(parentPath));
     AssertJUnit.assertFalse(zkClient.exists(path));
 
-    long ttl = 1L;
+    long ttl = 100L;
     ZNRecord record = new ZNRecord("record");
     String key = "key";
     String value = "value";

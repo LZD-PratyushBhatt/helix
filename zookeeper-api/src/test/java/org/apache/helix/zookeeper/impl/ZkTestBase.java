@@ -109,7 +109,7 @@ public class ZkTestBase {
 
     // Shut down ContainerManagers
     _zkServerContainerManagerMap.values().forEach(ContainerManager::stop);
-    
+
     // Shut down all ZkServers
     _zkServerMap.values().forEach(ZkServer::shutdown);
   }
@@ -153,7 +153,7 @@ public class ZkTestBase {
       return new ContainerManager(
           zooKeeperServer.getZKDatabase(),
           firstProcessor,
-          100, // Check interval in ms
+          1, // Check interval in ms
           100  // Max containers to check per interval
       ) {
         @Override
