@@ -153,8 +153,9 @@ public class ZkTestBase {
       return new ContainerManager(
           zooKeeperServer.getZKDatabase(),
           firstProcessor,
-          1, // Check interval in ms
-          100  // Max containers to check per interval
+          10, // Check interval in ms
+          100,  // Max containers to check per interval
+          10 // Max never used interval in ms
       ) {
         @Override
         protected long getElapsed(DataNode node) {
