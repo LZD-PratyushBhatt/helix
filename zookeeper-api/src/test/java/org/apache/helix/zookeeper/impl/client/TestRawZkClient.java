@@ -129,7 +129,7 @@ public class TestRawZkClient extends ZkTestBase {
     AssertJUnit.assertFalse(zkClient.exists(parentPath));
     AssertJUnit.assertFalse(zkClient.exists(path));
 
-    long ttl = 100L;
+    long ttl = 1L;
     ZNRecord record = new ZNRecord("record");
     String key = "key";
     String value = "value";
@@ -147,7 +147,7 @@ public class TestRawZkClient extends ZkTestBase {
     AssertJUnit.assertTrue(zkClient.exists(path));
 
     // Check if the TTL znode expires or not.
-    advanceFakeElapsedTime(2000);
+    advanceFakeElapsedTime(1000);
     ContainerManager containerManager = _zkServerContainerManagerMap.get(_zkServerMap.get(ZkTestBase.ZK_ADDR));
     containerManager.checkContainers();
 //    AssertJUnit.assertFalse("TTL znode should be expired", zkClient.exists(path));
@@ -186,10 +186,9 @@ public class TestRawZkClient extends ZkTestBase {
     AssertJUnit.assertEquals(value, retrievedRecord.getSimpleField(key));
 
     // Check if the TTL znode expires or not.
-    advanceFakeElapsedTime(10000);
+    advanceFakeElapsedTime(1000);
     ContainerManager containerManager = _zkServerContainerManagerMap.get(_zkServerMap.get(ZkTestBase.ZK_ADDR));
     containerManager.checkContainers();
-//    AssertJUnit.assertFalse(zkClient.exists(path));
 
     // Clean up
     zkClient.deleteRecursively(parentPath);
