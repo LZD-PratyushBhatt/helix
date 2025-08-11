@@ -265,6 +265,66 @@ public class TestCrushAutoRebalance extends ZkTestBase {
     }
   }
 
+  @Test
+  public void testPartitionAssignmentWithNodeDownDuringDelayCrushed() throws Exception {
+    // Set up cluster-level delayed rebalance for 1 minute (60,000 ms)
+    org.apache.helix.ConfigAccessor configAccessor = new org.apache.helix.ConfigAccessor(_gZkClient);
+    org.apache.helix.model.ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setDelayRebalaceEnabled(true);
+    clusterConfig.setRebalanceDelayTime(60000);
+    configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    // Create a CRUSHED resource with 5 partitions, 1 replica, minActiveReplica = 0
+    int numPartitions = 6;
+    int numReplicas = 1;
+    int minActiveReplica = numReplicas;
+    int delay = 60000; // 60 seconds delay
+    String stateModel = BuiltInStateModelDefinitions.MasterSlave.name();
+    String db = "Test-DB-NodeDownDelay-Crushed";
+    createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, numPartitions, numReplicas,
+        minActiveReplica, delay, CrushEdRebalanceStrategy.class.getName());
+    _allDBs.add(db);
+    Thread.sleep(2000); // Wait for assignment
+    ZkHelixClusterVerifier _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkClient(_gZkClient)
+            .setResources(_allDBs)
+            .setWaitTillVerify(TestHelper.DEFAULT_REBALANCE_PROCESSING_WAIT_TIME)
+            .build();
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Get the initial ExternalView and pick a partition and one of its assigned instances
+    ExternalView evBefore = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+    String targetPartition = evBefore.getPartitionSet().iterator().next();
+    String offlineInstance = evBefore.getStateMap(targetPartition).keySet().iterator().next();
+
+    // Bring down the chosen instance
+    for (MockParticipantManager participant : _participants) {
+      if (participant.getInstanceName().equals(offlineInstance)) {
+        participant.syncStop();
+        break;
+      }
+    }
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // Get the ExternalView after node down, during delay window
+    ExternalView evAfter = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+    Map<String, String> stateMapAfter = evAfter.getStateMap(targetPartition);
+
+    // The offline instance should still be in the assignment (delayed rebalance window)
+    Assert.assertTrue(stateMapAfter.containsKey(offlineInstance),
+        "Partition should still be assigned to the offline instance during delay window");
+
+    // Wait for delay window to expire
+    Thread.sleep(65000); // 65 seconds to ensure delay window passes
+    Assert.assertTrue(_clusterVerifier.verifyByPolling());
+
+    // After delay, the offline instance should be removed from assignment
+    ExternalView evFinal = _gSetupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+    Map<String, String> stateMapFinal = evFinal.getStateMap(targetPartition);
+    Assert.assertFalse(stateMapFinal.containsKey(offlineInstance),
+        "Partition should be moved off the offline instance after delay window");
+  }
+
   @AfterMethod
   public void afterMethod() throws Exception {
     for (String db : _allDBs) {

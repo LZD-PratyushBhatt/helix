@@ -302,6 +302,7 @@ public class WagedRebalancer implements StatefulRebalancer<ResourceControllerDat
       final CurrentStateOutput currentStateOutput, RebalanceAlgorithm algorithm)
       throws HelixRebalanceException {
 
+    // We calculate the delayed active nodes here.(the active nodes set that is calculated with the delay time window)
     Set<String> activeNodes =
         DelayedRebalanceUtil.getActiveNodes(clusterData.getAssignableInstances(),
             clusterData.getEnabledLiveInstances(),

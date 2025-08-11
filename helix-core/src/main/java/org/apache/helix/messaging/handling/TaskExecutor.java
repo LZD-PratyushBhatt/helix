@@ -40,7 +40,7 @@ public interface TaskExecutor {
 
   /**
    * Register message handler factory this executor can handle
-   * @param type
+   * @param `type
    * @param factory
    */
   @Deprecated
